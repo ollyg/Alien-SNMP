@@ -51,10 +51,6 @@
 \bcover_db\b
 \bcovered\b
 
-# Avoid MYMETA files
-^MYMETA\.
-#!end included /home/jtpalmer/.perlbrew/perls/perl-5.16.2/lib/5.16.2/ExtUtils/MANIFEST.SKIP
-
 # Avoid configuration metadata file
 ^MYMETA\.
 

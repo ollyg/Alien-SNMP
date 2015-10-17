@@ -1,0 +1,34 @@
+---
+abstract: 'Build and install Net-SNMP'
+author:
+  - 'Eric A. Miller <emiller AT cpan DOT org>'
+build_requires:
+  Test::CChecker: '0'
+  Test::More: '0.94'
+  perl: '5.010001'
+configure_requires:
+  Alien::Base: '0.020'
+  ExtUtils::CChecker: '0.10'
+  File::ShareDir: '1.03'
+  Module::Build: '0.42'
+  perl: '5.010001'
+dynamic_config: 1
+generated_by: 'Module::Build version 0.4214, CPAN::Meta::Converter version 2.150005'
+license: bsd
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: '1.4'
+name: Alien-SNMP
+provides:
+  Alien::SNMP:
+    file: lib/Alien/SNMP.pm
+    version: '0.01'
+requires:
+  Alien::Base: '0.020'
+  File::ShareDir: '1.03'
+  parent: '0'
+  perl: '5.010001'
+resources:
+  license: http://opensource.org/licenses/BSD-3-Clause
+version: '0.01'
+x_serialization_backend: 'CPAN::Meta::YAML version 0.012'

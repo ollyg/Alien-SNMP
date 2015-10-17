@@ -23,6 +23,7 @@ my %module_build_args = (
   alien_build_commands    => [$conf_cmd, 'make',],
   alien_isolate_dynamic   => 1,
   alien_name              => 'netsnmp',
+  alien_provides_cflags   => '-I${pcfiledir}/include',
   alien_provides_libs     => "-lnetsnmp",
   alien_repository        => {
     protocol       => 'http',

@@ -20,12 +20,16 @@ my $conf_cmd = [
 
 my %module_build_args = (
   alien_autoconf_with_pic => 0,
-  alien_build_commands    => [$conf_cmd, 'make',],
-  alien_isolate_dynamic   => 1,
-  alien_name              => 'netsnmp',
-  alien_provides_cflags   => '-I${pcfiledir}/include',
-  alien_provides_libs     => "-lnetsnmp",
-  alien_repository        => {
+  alien_build_commands    => [$conf_cmd, 'make'],
+
+  # Not using FFI, default_store library only dynamic and needed for XS
+  alien_isolate_dynamic => 0,
+  alien_name            => 'netsnmp',
+
+  # Headers referenced as net-snmp/xxx.h, autodiscovery appends net-snmp
+  alien_provides_cflags => '-I${pcfiledir}/include',
+  alien_provides_libs   => '-lnetsnmp',
+  alien_repository      => {
     protocol       => 'http',
     host           => 'sourceforge.net',
     location       => '/projects/net-snmp/files/net-snmp/5.7.3/',
@@ -37,7 +41,7 @@ my %module_build_args = (
     "Alien::Base"        => '0.020',
     "ExtUtils::CChecker" => '0.10',
     "File::ShareDir"     => '1.03',
-    "Module::Build"      => '0.42', 
+    "Module::Build"      => '0.42',
     "perl"               => '5.010001'
   },
   create_license    => 1,

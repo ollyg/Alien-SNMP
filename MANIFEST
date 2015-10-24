@@ -1,5 +1,6 @@
 Build.PL
 Changes
+inc/My/AlienPatch.pm
 inc/My/ModuleBuild.pm
 lib/Alien/SNMP.pm
 LICENSE

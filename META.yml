@@ -21,7 +21,7 @@ meta-spec:
 name: Alien-SNMP-MAXTC
 provides:
   Alien::SNMP::MAXTC:
-    file: lib/Alien/SNMP.pm
+    file: lib/Alien/SNMP/MAXTC.pm
     version: '0.02'
 requires:
   Alien::Base: '0.020'

@@ -26,20 +26,21 @@ SYNOPSIS
         $builder->create_build_script();
 
 DESCRIPTION
-    Alien::SNMP::MAXTC downloads and installs the Net-SNMP library and associated
-    perl modules.
+    Alien::SNMP::MAXTC downloads and installs the Net-SNMP library and
+    associated perl modules.
 
     The library is built with the following options:
 
-    "--disable-agent"
-    "--disable-manuals"
-    "--disable-scripts"
-    "--disable-mibs"
-    "--enable-ipv6"
-    "--with-mibs="""
-    "--with-perl-modules"
-    "--disable-embedded-perl"
-    "--with-defaults"
+    `--disable-agent'
+    `--disable-applications'
+    `--disable-manuals'
+    `--disable-scripts'
+    `--disable-mibs'
+    `--enable-ipv6'
+    `--with-mibs=""'
+    `--with-perl-modules'
+    `--disable-embedded-perl'
+    `--with-defaults'
 
 EXPORT
     A list of functions that can be exported. You can delete this section if
@@ -65,13 +66,13 @@ SEE ALSO
         along with the C library.
 
 AUTHOR
-    Eric A. Miller, "<emiller at cpan.org>"
+    Eric A. Miller, `<emiller at cpan.org>'
 
 LICENSE AND COPYRIGHT
     Copyright 2015 Eric A. Miller.
 
     This program is distributed under the (Revised) BSD License:
-    <http://www.opensource.org/licenses/BSD-3-Clause>
+    http://www.opensource.org/licenses/BSD-3-Clause
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are

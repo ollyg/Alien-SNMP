@@ -12,7 +12,7 @@
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
       "version" : "2"
    },
-   "name" : "Alien-SNMP",
+   "name" : "Alien-SNMP-MAXTC",
    "prereqs" : {
       "configure" : {
          "requires" : {
@@ -40,9 +40,9 @@
       }
    },
    "provides" : {
-      "Alien::SNMP" : {
+      "Alien::SNMP::MAXTC" : {
          "file" : "lib/Alien/SNMP.pm",
-         "version" : "0.01"
+         "version" : "0.02"
       }
    },
    "release_status" : "stable",
@@ -51,6 +51,6 @@
          "http://opensource.org/licenses/BSD-3-Clause"
       ]
    },
-   "version" : "0.01",
+   "version" : "0.02",
    "x_serialization_backend" : "JSON::PP version 2.27203"
 }

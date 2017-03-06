@@ -1,11 +1,11 @@
-package Alien::SNMP;
+package Alien::SNMP::MAXTC;
 
 use strict;
 use warnings;
 use 5.010001;
 use parent qw(Alien::Base);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 1;
 
@@ -17,29 +17,29 @@ __END__
 
 =head1 NAME
 
-Alien::SNMP - Alien package for the Net-SNMP library
+Alien::SNMP::MAXTC - Alien package for the Net-SNMP library
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
 =head1 SYNOPSIS
 
     use Module::Build;
-    use Alien::SNMP;
+    use Alien::SNMP::MAXTC;
 
-    my $alien = Alien::SNMP->new;
+    my $alien = Alien::SNMP::MAXTC->new;
     my $builder = Module::Build->new(
         module_name => 'Some::Library::SNMP',
         # ...
         configure_requires => {
-            'Alien::SNMP' => 0,
+            'Alien::SNMP::MAXTC' => 0,
             # ...
         },
         build_requires => {
-            'Alien::SNMP' => 0
+            'Alien::SNMP::MAXTC' => 0
             # ...
         },
         extra_compiler_flags => $alien->cflags,
@@ -49,7 +49,7 @@ Version 0.01
 
 =head1 DESCRIPTION
 
-L<Alien::SNMP> downloads and installs the Net-SNMP library and associated perl modules.
+L<Alien::SNMP::MAXTC> downloads and installs the Net-SNMP library and associated perl modules.
 
 The library is built with the following options:
 
@@ -86,13 +86,13 @@ if you don't export anything, such as for a purely object-oriented module.
 
 =head2 cflags
 
- my $cflags = Alien::SNMP->cflags;
+ my $cflags = Alien::SNMP::MAXTC->cflags;
 
 Returns the C compiler flags.
 
 =head2 libs
 
- my $libs = Alien::SNMP->libs;
+ my $libs = Alien::SNMP::MAXTC->libs;
 
 Returns the linker flags.
 

@@ -11,11 +11,10 @@ use My::ModuleBuild;
 my $conf_cmd = [
   '%c',                     '--with-pic',
   '--prefix=%s',            '--disable-agent',
-  '--disable-applications', '--disable-manuals',
   '--disable-scripts',      '--disable-mibs',
   '--enable-ipv6',          '--with-mibs=""',
   '--with-perl-modules',    '--disable-embedded-perl',
-  '--with-defaults',
+  '--disable-manuals',      '--with-defaults',
 ];
 
 my %module_build_args = (
@@ -49,10 +48,10 @@ my %module_build_args = (
   create_readme     => 1,
   dist_abstract     => 'Build and install Net-SNMP',
   dist_author       => 'Eric A. Miller <emiller AT cpan DOT org>',
-  dist_name         => 'Alien-SNMP',
-  dist_version_from => 'lib/Alien/SNMP.pm',
+  dist_name         => 'Alien-SNMP-MAXTC',
+  dist_version_from => 'lib/Alien/SNMP/MAXTC.pm',
   license           => 'bsd',
-  module_name       => "Alien::SNMP",
+  module_name       => "Alien::SNMP::MAXTC",
   recommends        => {},
   requires          => {
     "Alien::Base"    => '0.020',

@@ -1,4 +1,7 @@
-Revision history for Alien-SNMP
+Revision history for Alien-SNMP-MAXTC
+
+0.02    2017-03-06
+        Create Alien::SNMP::MAXTC
 
 0.01    2015-10-16
         First version, initial release.

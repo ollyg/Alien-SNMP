@@ -18,11 +18,11 @@ license: bsd
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: '1.4'
-name: Alien-SNMP
+name: Alien-SNMP-MAXTC
 provides:
-  Alien::SNMP:
+  Alien::SNMP::MAXTC:
     file: lib/Alien/SNMP.pm
-    version: '0.01'
+    version: '0.02'
 requires:
   Alien::Base: '0.020'
   File::ShareDir: '1.03'
@@ -30,5 +30,5 @@ requires:
   perl: '5.010001'
 resources:
   license: http://opensource.org/licenses/BSD-3-Clause
-version: '0.01'
+version: '0.02'
 x_serialization_backend: 'CPAN::Meta::YAML version 0.012'

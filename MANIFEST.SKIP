@@ -70,3 +70,4 @@
 ^_build
 ^_share
 ^upstream
+^.travis.yml

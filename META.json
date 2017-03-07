@@ -14,6 +14,12 @@
    },
    "name" : "Alien-SNMP-MAXTC",
    "prereqs" : {
+      "build" : {
+         "requires" : {
+            "IO::Socket::SSL" : "1.56",
+            "Net::SSLeay" : "1.49"
+         }
+      },
       "configure" : {
          "requires" : {
             "Alien::Base" : "0.020",

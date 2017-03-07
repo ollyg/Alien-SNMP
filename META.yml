@@ -3,6 +3,8 @@ abstract: 'Build and install Net-SNMP'
 author:
   - 'Eric A. Miller <emiller AT cpan DOT org>'
 build_requires:
+  IO::Socket::SSL: '1.56'
+  Net::SSLeay: '1.49'
   Test::CChecker: '0'
   Test::More: '0.94'
   perl: '5.010001'

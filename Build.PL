@@ -35,7 +35,7 @@ my %module_build_args = (
     location       => '/ollyg/Alien-SNMP-MAXTC/blob/master/upstream/',
     exact_filename => 'net-snmp-5.7.3.tar.gz?raw=true',
   },
-  alien_stage_install => 1,
+  alien_stage_install => 0,
   build_requires      => {},
   configure_requires  => {
     "perl"               => '5.010001',

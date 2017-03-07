@@ -20,6 +20,8 @@
             "ExtUtils::CChecker" : "0.10",
             "File::ShareDir" : "1.03",
             "Module::Build" : "0.42",
+            "PkgConfig" : "0.14026",
+            "Test2::Suite" : "0.000067",
             "perl" : "5.010001"
          }
       },
@@ -27,8 +29,6 @@
          "requires" : {
             "Alien::Base" : "0.020",
             "File::ShareDir" : "1.03",
-            "PkgConfig" : "0.14026",
-            "Test2::Suite" : "0.000067",
             "parent" : "0",
             "perl" : "5.010001"
          }

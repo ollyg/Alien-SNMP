@@ -43,6 +43,8 @@ my %module_build_args = (
     "ExtUtils::CChecker" => '0.10',
     "File::ShareDir"     => '1.03',
     "Module::Build"      => '0.42',
+    "PkgConfig"          => '0.14026',
+    "Test2::Suite"       => '0.000067'
   },
   create_license    => 1,
   create_readme     => 1,
@@ -54,12 +56,10 @@ my %module_build_args = (
   module_name       => "Alien::SNMP::MAXTC",
   recommends        => {},
   requires          => {
-    "perl"           => '5.010001',
     "Alien::Base"    => '0.020',
     "File::ShareDir" => '1.03',
     "parent"         => 0,
-    "PkgConfig"      => '0.14026',
-    "Test2::Suite"   => '0.000067',
+    "perl"           => '5.010001'
   },
   test_requires =>
     {"Test::CChecker" => 0, "Test::More" => '0.94', "perl" => '5.010001'},

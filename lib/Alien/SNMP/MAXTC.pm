@@ -27,37 +27,27 @@ Version 0.02
 
 =head1 SYNOPSIS
 
-    use Module::Build;
-    use Alien::SNMP::MAXTC;
-
-    my $alien = Alien::SNMP::MAXTC->new;
-    my $builder = Module::Build->new(
-        module_name => 'Some::Library::SNMP',
-        # ...
-        configure_requires => {
-            'Alien::SNMP::MAXTC' => 0,
-            # ...
-        },
-        build_requires => {
-            'Alien::SNMP::MAXTC' => 0
-            # ...
-        },
-        extra_compiler_flags => $alien->cflags,
-        extra_linker_flags   => $alien->libs,
-    );
-    $builder->create_build_script();
+ use Alien::SNMP::MAXTC;
+ # then it's just like SNMP.pm
+ 
+ say Alien::SNMP::MAXTC->bin_dir;
+ # where the net-snmp apps (snmptranslate, etc) live
 
 =head1 DESCRIPTION
 
-L<Alien::SNMP::MAXTC> downloads and installs the Net-SNMP library and associated perl modules.
+L<Alien::SNMP::MAXTC> downloads and installs the Net-SNMP library and
+associated perl modules.
+
+This is a fork of L<Alien::SNMP> with some changed options. We may merge-back
+one day.
 
 The library is built with the following options:
 
 =over
 
-=item C<--disable-agent>
+=item MAXTC set to 16k
 
-=item C<--disable-applications>
+=item C<--disable-agent>
 
 =item C<--disable-manuals>
 
@@ -77,12 +67,13 @@ The library is built with the following options:
 
 =back
 
-=head1 EXPORT
-
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
-
 =head1 METHODS
+
+=head2 bin_dir
+
+ my $bin_dir = Alien::SNMP::MAXTC->bin_dir;
+
+Returns the location of the net-snmp apps (snmptranslate, etc).
 
 =head2 cflags
 
@@ -106,8 +97,9 @@ Returns the linker flags.
 
 =item L<SNMP>
 
-The Perl5 'SNMP' Extension Module for the Net-SNMP SNMP package.  Depends on libnetsnmp and the
-corresponding version is installed along with the C library.
+The Perl5 'SNMP' Extension Module for the Net-SNMP SNMP package.  Depends on
+libnetsnmp and the corresponding version is installed along with the C
+library.
 
 =back
 

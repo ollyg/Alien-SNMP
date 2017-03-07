@@ -11,8 +11,6 @@ configure_requires:
   ExtUtils::CChecker: '0.10'
   File::ShareDir: '1.03'
   Module::Build: '0.42'
-  PkgConfig: '0.14026'
-  Test2::Suite: '0.000067'
   perl: '5.010001'
 dynamic_config: 1
 generated_by: 'Module::Build version 0.422, CPAN::Meta::Converter version 2.143240'
@@ -28,6 +26,8 @@ provides:
 requires:
   Alien::Base: '0.020'
   File::ShareDir: '1.03'
+  PkgConfig: '0.14026'
+  Test2::Suite: '0.000067'
   parent: '0'
   perl: '5.010001'
 resources:

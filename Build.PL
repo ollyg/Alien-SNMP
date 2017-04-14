@@ -32,7 +32,7 @@ my %module_build_args = (
   alien_repository      => {
     protocol       => 'https',
     host           => 'github.com',
-    location       => '/ollyg/Alien-SNMP-MAXTC/blob/master/upstream/',
+    location       => '/netdisco/upstream-sources/blob/master/net-snmp/',
     exact_filename => 'net-snmp-5.7.3.tar.gz?raw=true',
   },
   alien_stage_install => 0,

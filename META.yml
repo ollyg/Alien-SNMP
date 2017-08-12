@@ -26,7 +26,7 @@ name: Alien-SNMP-MAXTC
 provides:
   Alien::SNMP::MAXTC:
     file: lib/Alien/SNMP/MAXTC.pm
-    version: '1.000000'
+    version: '1.000001'
 requires:
   Alien::Base: '0.020'
   File::ShareDir: '1.03'
@@ -34,5 +34,5 @@ requires:
   perl: '5.010001'
 resources:
   license: http://opensource.org/licenses/BSD-3-Clause
-version: '1.000000'
+version: '1.000001'
 x_serialization_backend: 'CPAN::Meta::YAML version 0.018'

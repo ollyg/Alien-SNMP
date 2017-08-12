@@ -2,7 +2,7 @@ NAME
     Alien::SNMP::MAXTC - Alien package for the Net-SNMP library
 
 VERSION
-    Version 0.02
+    Version 1.000000
 
 SYNOPSIS
      use Alien::SNMP::MAXTC;

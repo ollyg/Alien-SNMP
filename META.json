@@ -4,13 +4,13 @@
       "Eric A. Miller <emiller AT cpan DOT org>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.422",
+   "generated_by" : "Module::Build version 0.4224",
    "license" : [
       "bsd"
    ],
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
-      "version" : "2"
+      "version" : 2
    },
    "name" : "Alien-SNMP-MAXTC",
    "prereqs" : {
@@ -50,7 +50,7 @@
    "provides" : {
       "Alien::SNMP::MAXTC" : {
          "file" : "lib/Alien/SNMP/MAXTC.pm",
-         "version" : "0.02"
+         "version" : "1.000000"
       }
    },
    "release_status" : "stable",
@@ -59,5 +59,6 @@
          "http://opensource.org/licenses/BSD-3-Clause"
       ]
    },
-   "version" : "0.02"
+   "version" : "1.000000",
+   "x_serialization_backend" : "JSON::PP version 2.94"
 }

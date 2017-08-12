@@ -1,10 +1,15 @@
-Revision history for Alien-SNMP-MAXTC
+1.000000 - 2017-08-12
 
-0.03    2017-04-14
-        Move net-snmp upstream to another repo.
+  * CPAN release
 
-0.02    2017-03-06
-        Create Alien::SNMP::MAXTC
+0.030000 - 2017-04-14
 
-0.01    2015-10-16
-        First version, initial release.
+  * Move net-snmp upstream to another repo
+
+0.020000 - 2017-03-06
+
+  * Create Alien::SNMP::MAXTC
+
+0.010000 - 2015-10-16
+
+  * First version, initial release

@@ -2,13 +2,13 @@ use strict;
 use warnings;
 use Test::More;
 use Test::CChecker;
-use Alien::SNMP::MAXTC;
+use Alien::SNMP;
 
 plan tests => 1;
 
 compile_output_to_note;
 
-compile_with_alien 'Alien::SNMP::MAXTC';
+compile_with_alien 'Alien::SNMP';
 
 compile_run_ok <<'C_CODE', "basic compile test";
 #include <net-snmp/net-snmp-config.h>

@@ -11,6 +11,6 @@ if ($^O eq 'MSWin32') {
 }
 
 sub alien_check_installed_version { return }
-sub alien_check_built_version { return '5.7.3' }
+sub alien_check_built_version { return '5.8' }
 
 1;

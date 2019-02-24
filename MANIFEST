@@ -2,7 +2,7 @@ Build.PL
 Changes
 inc/My/AlienPatch.pm
 inc/My/ModuleBuild.pm
-lib/Alien/SNMP/MAXTC.pm
+lib/Alien/SNMP.pm
 LICENSE
 MANIFEST			This list of files
 META.json

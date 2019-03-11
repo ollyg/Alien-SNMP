@@ -5,12 +5,11 @@ author:
 build_requires:
   IO::Socket::SSL: '1.56'
   Net::SSLeay: '1.49'
-  Test::CChecker: '0'
+  Test::Alien: '0.16'
   Test::More: '0.94'
   perl: '5.010001'
 configure_requires:
   Alien::Base: '0.020'
-  ExtUtils::CChecker: '0.10'
   File::ShareDir: '1.03'
   Module::Build: '0.42'
   PkgConfig: '0.14026'

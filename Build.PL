@@ -64,6 +64,11 @@ my %module_build_args = (
   test_requires =>
     {"Test::CChecker" => 0, "Test::More" => '0.94', "perl" => '5.010001'},
 
+  meta_merge => {
+    resources  => {
+      repository => "http://github.com/ollyg/Alien-SNMP",
+    },
+  },
 );
 
 my %fallback_build_requires

@@ -3,7 +3,7 @@ abstract: 'Build and install Net-SNMP'
 author:
   - 'Eric A. Miller <emiller AT cpan DOT org>'
 build_requires:
-  Alien::Base::ModuleBuild: '0'
+  Alien::Base: '0.020'
   IO::Socket::SSL: '1.56'
   Net::SSLeay: '1.49'
   Software::License: '0'
@@ -11,7 +11,7 @@ build_requires:
   Test::More: '0.94'
   perl: '5.010001'
 configure_requires:
-  Alien::Base: '0.020'
+  Alien::Base::ModuleBuild: '0'
   File::ShareDir: '1.03'
   Module::Build: '0.42'
   PkgConfig: '0.14026'

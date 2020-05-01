@@ -51,7 +51,7 @@
    "provides" : {
       "Alien::SNMP" : {
          "file" : "lib/Alien/SNMP.pm",
-         "version" : "2.001000"
+         "version" : "2.002000"
       }
    },
    "release_status" : "stable",
@@ -63,6 +63,6 @@
          "url" : "http://github.com/ollyg/Alien-SNMP"
       }
    },
-   "version" : "2.001000",
+   "version" : "2.002000",
    "x_serialization_backend" : "JSON::PP version 2.97001"
 }

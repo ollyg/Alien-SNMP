@@ -69,6 +69,7 @@ my %module_build_args = (
   meta_merge => {
     resources  => {
       repository => "http://github.com/ollyg/Alien-SNMP",
+      bugtracker => 'https://github.com/ollyg/Alien-SNMP/issues',
     },
   },
 );

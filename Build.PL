@@ -20,7 +20,7 @@ my $conf_cmd = [
 my %module_build_args = (
   alien_autoconf_with_pic => 0,
   alien_build_commands =>
-    ["%x -I../../inc -MMy::AlienPatch -e alien_patch", $conf_cmd, 'make'],
+    ["%x -I../../inc -MMy::AlienPatch -e alien_patch", $conf_cmd, 'make', 'make install'],
 
   # Not using FFI, default_store library only dynamic and needed for XS
   alien_isolate_dynamic => 0,
@@ -64,7 +64,11 @@ my %module_build_args = (
     "perl"           => '5.010001'
   },
   test_requires =>
-    {"Test::Alien" => '0.16', "Test::More" => '0.94', "perl" => '5.010001'},
+  {
+    "Test::Alien" => '0.16',
+    "Test::More" => '0.94',
+    "perl" => '5.010001'
+  },
 
   meta_merge => {
     resources  => {

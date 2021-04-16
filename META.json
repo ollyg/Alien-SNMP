@@ -4,7 +4,7 @@
       "Eric A. Miller <emiller AT cpan DOT org>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.4224",
+   "generated_by" : "Module::Build version 0.4231",
    "license" : [
       "bsd"
    ],
@@ -64,5 +64,5 @@
       }
    },
    "version" : "2.002000",
-   "x_serialization_backend" : "JSON::PP version 2.97001"
+   "x_serialization_backend" : "JSON::PP version 4.04"
 }

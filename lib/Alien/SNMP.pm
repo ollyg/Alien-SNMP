@@ -5,7 +5,7 @@ use warnings;
 use 5.010001;
 use parent qw(Alien::Base);
 
-our $VERSION = '3.0509030000';
+our $VERSION = '3.0509040000';
 
 1;
 

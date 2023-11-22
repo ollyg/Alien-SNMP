@@ -5,7 +5,7 @@ use warnings;
 use 5.010001;
 use parent qw(Alien::Base);
 
-our $VERSION = '3.0509040000';
+our $VERSION = '3.0509040001';
 
 1;
 
@@ -18,10 +18,6 @@ __END__
 =head1 NAME
 
 Alien::SNMP - Alien package for the Net-SNMP library
-
-=head1 VERSION
-
-Version 2.001000
 
 =cut
 

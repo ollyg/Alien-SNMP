@@ -14,7 +14,8 @@ my $conf_cmd = [
   '--disable-scripts',      '--disable-mibs',
   '--enable-ipv6',          '--with-mibs=""',
   '--with-perl-modules',    '--disable-embedded-perl',
-  '--disable-manuals',      '--with-defaults',
+  '--disable-manuals',      '--enable-blumenthal-aes',
+  '--with-defaults',
 ];
 
 my %module_build_args = (

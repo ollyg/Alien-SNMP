@@ -22,6 +22,7 @@ DESCRIPTION
     "--with-mibs="""
     "--with-perl-modules"
     "--disable-embedded-perl"
+    "--enable-blumenthal-aes"
     "--with-defaults"
 
 METHODS

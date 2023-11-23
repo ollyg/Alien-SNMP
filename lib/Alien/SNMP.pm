@@ -5,7 +5,7 @@ use warnings;
 use 5.010001;
 use parent qw(Alien::Base);
 
-our $VERSION = '3.0509040001';
+our $VERSION = '3.0509040002';
 
 1;
 
@@ -53,6 +53,8 @@ The library is built with the following options:
 =item C<--with-perl-modules>
 
 =item C<--disable-embedded-perl>
+
+=item C<--enable-blumenthal-aes>
 
 =item C<--with-defaults>
 

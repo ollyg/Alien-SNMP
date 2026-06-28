@@ -70,3 +70,6 @@
 ^_build
 ^_share
 ^.travis.yml
+
+# Project-local Claude Code instructions (not part of the distribution)
+^CLAUDE\.md

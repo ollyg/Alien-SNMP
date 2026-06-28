@@ -1,5 +1,8 @@
 /Alien-SNMP-*
 /Build
+/Makefile
+/Makefile.old
+/pm_to_blib
 /MYMETA.*
 /_alien
 /_build

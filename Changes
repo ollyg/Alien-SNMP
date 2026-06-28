@@ -1,3 +1,11 @@
+4.0509040000 - 2026-06-28
+
+  * Migrate from legacy Alien::Base::ModuleBuild to the modern alienfile /
+    Alien::Build::MM (Makefile.PL) toolchain (major-revision / series bump)
+  * Replace Build.PL + inc/My/ with an alienfile build recipe
+  * Pin the Net-SNMP source tarball with a SHA256 digest
+  * Net-SNMP remains 5.9.4
+
 3.0509050200 - 2026-06-30
 
   * update to net-snmp 5.9.5.2

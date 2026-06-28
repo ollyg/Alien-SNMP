@@ -5,7 +5,7 @@ use warnings;
 use 5.010001;
 use parent qw(Alien::Base);
 
-our $VERSION = '3.0509050200';
+our $VERSION = '4.0509040000';
 
 1;
 
@@ -102,7 +102,7 @@ Eric A. Miller, C<< <emiller at cpan.org> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2015 Eric A. Miller.
+Copyright 2026 Eric A. Miller.
 
 This program is distributed under the (Revised) BSD License:
 L<http://www.opensource.org/licenses/BSD-3-Clause>

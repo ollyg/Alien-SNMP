@@ -40,7 +40,9 @@ my %module_build_args = (
     location       => '/netdisco/upstream-sources/blob/master/net-snmp/',
     exact_filename => 'net-snmp-5.9.4.tar.gz?raw=true',
   },
-  alien_stage_install => 0,
+  # Stage into a unified lib/ before the test phase so Test::Alien can link
+  # against the built libnetsnmp (libtool keeps it in */.libs until installed)
+  alien_stage_install => 1,
   build_requires      => {
     "Alien::Base"        => '0.020',
     'Software::License' => '0',

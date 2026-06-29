@@ -69,7 +69,43 @@ share {
     # File::Find copier rather than `tar -C / -x` because tar aborts trying to chmod
     # pre-existing top-level dirs (/, /home, ...) it does not own; this creates parent
     # dirs with make_path and never touches existing directory metadata.
-    q{%{perl} -MFile::Find -MFile::Path -MFile::Copy -e 'my $d=$ENV{DESTDIR};my $ex=q[%{.install.prefix}];File::Find::find({no_chdir=>1,wanted=>sub{my $s=$File::Find::name;return if $s eq $d;(my $t=$s)=~s/^\Q$d\E//;if($t=~m{^\Q$ex\E(?:/|$)}){$File::Find::prune=1;return}return if -d $s;(my $p=$t)=~s{/[^/]+$}{};File::Path::make_path($p);unlink $t;if(-l $s){my $l=readlink $s;symlink $l,$t}else{File::Copy::copy($s,$t) or die qq[copy $s: $!];chmod((stat $s)[2]&0777,$t)}}},$d);'},
+    q{%{perl} -MFile::Find -MFile::Path -MFile::Copy -e '
+        my $destdir = $ENV{DESTDIR};
+        my $share   = q[%{.install.prefix}];   # the Alien share prefix, installed separately via blib
+
+        File::Find::find({
+            no_chdir => 1,
+            wanted   => sub {
+                my $src = $File::Find::name;
+                return if $src eq $destdir;             # skip the staging root itself
+
+                # Strip $DESTDIR to recover the real (absolute) install path.
+                (my $dst = $src) =~ s/^\Q$destdir\E//;
+
+                # Do not copy the Alien share tree; Gather installs that via blib,
+                # so copying it here would double-install / pollute the share.
+                if ($dst =~ m{^\Q$share\E(?:/|$)}) {
+                    $File::Find::prune = 1;
+                    return;
+                }
+
+                return if -d $src;                     # make_path recreates dirs as needed
+
+                # Ensure the destination parent dir exists, then replace any old file.
+                (my $parent = $dst) =~ s{/[^/]+$}{};
+                File::Path::make_path($parent);
+                unlink $dst;
+
+                if (-l $src) {                         # preserve symlinks as symlinks
+                    symlink readlink($src), $dst;
+                }
+                else {
+                    File::Copy::copy($src, $dst) or die qq[copy $src: $!];
+                    chmod((stat $src)[2] & 0777, $dst);   # preserve permission bits
+                }
+            },
+        }, $destdir);
+    '},
   ];
 
   gather sub {

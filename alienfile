@@ -7,16 +7,16 @@ probe sub { 'share' };
 
 share {
   # Canonical raw URL — serves the tarball directly (no GitHub blob-page redirects).
-  # The netdisco mirror is byte-for-byte identical to the official Net-SNMP 5.9.4
+  # The netdisco mirror is byte-for-byte identical to the official Net-SNMP 5.9.5.2
   # release on SourceForge; if the mirror ever disappears, point start_url at
-  #   https://sourceforge.net/projects/net-snmp/files/net-snmp/5.9.4/net-snmp-5.9.4.tar.gz/download
+  #   https://sourceforge.net/projects/net-snmp/files/net-snmp/5.9.5.2/net-snmp-5.9.5.2.tar.gz/download
   # and the digest below still validates unchanged.
-  start_url 'https://raw.githubusercontent.com/netdisco/upstream-sources/master/net-snmp/net-snmp-5.9.4.tar.gz';
+  start_url 'https://raw.githubusercontent.com/netdisco/upstream-sources/master/net-snmp/net-snmp-5.9.5.2.tar.gz';
 
   plugin 'Download';   # https fetch requires a TLS-capable fetcher (Net::SSLeay/IO::Socket::SSL or curl/wget)
 
   # Verify integrity independent of host.  Recompute on every Net-SNMP version bump.
-  digest 'SHA256', '8b4de01391e74e3c7014beb43961a2d6d6fa03acc34280b9585f4930745b0544';
+  digest 'SHA256', '16707719f833184a4b72835dac359ae188123b06b5e42817c00790d7dc1384bf';
 
   plugin 'Extract' => 'tar.gz';
 
@@ -111,7 +111,7 @@ share {
   gather sub {
     my ($build) = @_;
     my $prefix = $build->runtime_prop->{prefix};
-    $build->runtime_prop->{version} = '5.9.4';
+    $build->runtime_prop->{version} = '5.9.5.2';
     # Headers are referenced as net-snmp/xxx.h under <prefix>/include.
     $build->runtime_prop->{cflags}  = "-I$prefix/include";
     # default_store library is needed dynamically for the XS module.

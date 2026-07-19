@@ -11,6 +11,9 @@ t/00_diag.t
 t/00_diag.txt
 t/01_use.t
 t/02_compile.t
+t/03_version.t
+t/04_flags.t
+t/05_meta.t
 t/manifest.t
 t/pod-coverage.t
 t/pod.t

@@ -1,21 +1,25 @@
 use alienfile;
 
 # Net-SNMP is built deliberately minimal and from a pinned source tarball; we never
-# probe for / use a system copy.  This forces a share (source) build, equivalent to
+# probe for / use a system copy. This forces a share (source) build, equivalent to
 # the legacy alien_check_installed_version returning nothing.
 probe sub { 'share' };
 
 share {
-  # Canonical raw URL — serves the tarball directly (no GitHub blob-page redirects).
-  # The netdisco mirror is byte-for-byte identical to the official Net-SNMP 5.9.5.2
-  # release on SourceForge; if the mirror ever disappears, point start_url at
-  #   https://sourceforge.net/projects/net-snmp/files/net-snmp/5.9.5.2/net-snmp-5.9.5.2.tar.gz/download
-  # and the digest below still validates unchanged.
+  # Canonical raw URL serves the tarball directly (no GitHub blob-page redirects).
+  # The netdisco mirror is byte-for-byte identical to the official Net-SNMP
+  # release on SourceForge.
   start_url 'https://raw.githubusercontent.com/netdisco/upstream-sources/master/net-snmp/net-snmp-5.9.5.2.tar.gz';
 
   plugin 'Download';   # https fetch requires a TLS-capable fetcher (Net::SSLeay/IO::Socket::SSL or curl/wget)
 
-  # Verify integrity independent of host.  Recompute on every Net-SNMP version bump.
+  # Verify integrity independent of host. We pin SHA256 (SourceForge publishes only
+  # SHA1, which is collision-broken and too weak to trust a third-party mirror against).
+  # On every Net-SNMP version bump, regenerate this line with:
+  #   maintainer/update-netsnmp-digest --version <x.y.z> --sha1 <sha1-from-sourceforge>
+  # That verifies the tarball against SourceForge's published SHA1 (the human trust
+  # anchor), computes this SHA256 from the verified file, and confirms the netdisco
+  # mirror is byte-identical.
   digest 'SHA256', '16707719f833184a4b72835dac359ae188123b06b5e42817c00790d7dc1384bf';
 
   plugin 'Extract' => 'tar.gz';

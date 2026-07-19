@@ -30,8 +30,7 @@ WriteMakefile($abmm->mm_args(
     'Alien::Build'        => '2.84',  # digest directive + Download/Extract/Autoconf plugins
   },
   BUILD_REQUIRES => {
-    'Alien::Build' => '2.84',
-    'Net::SSLeay'  => '0',            # TLS fetcher for the https source download
+    'Alien::Build' => '2.84',        # source build: Download/Extract/Autoconf + digest
   },
   PREREQ_PM => {
     'Alien::Base' => '2.84',

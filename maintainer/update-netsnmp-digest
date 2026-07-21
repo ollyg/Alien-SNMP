@@ -1,0 +1,175 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use 5.010001;
+use Getopt::Long qw(GetOptions);
+use Digest::SHA qw(sha1_hex sha256_hex);
+use HTTP::Tiny;
+
+# Maintainer helper: automate the "verify against SourceForge, then pin SHA256"
+# recipe used when bumping the bundled Net-SNMP version in the alienfile.
+#
+# The human trust anchor stays with the maintainer: the official SHA1 off the
+# SourceForge files page is pass in with --sha1. Everything mechanical:
+# downloading, verifying that SHA1, computing the SHA256 actually pinned, and
+# proving the netdisco mirror is byte-identical is done here. The script
+# refuses to emit anything if any check fails.
+#
+# NOTE: The reason for the netdisco mirror is due to SourceForge redirects
+# (per-request, signed and expiring mirror link) interfering with the 
+# Alien::Build process. Pinning to a signed/expiring redirect that rotates 
+# backends (and occasionally serves an HTML interstitial instead of the file) 
+# is too fragile. The netdisco mirror is a stable, redirect-free raw URL. 
+
+my $SOURCEFORGE_URL_TEMPLATE =
+  'https://sourceforge.net/projects/net-snmp/files/net-snmp/%s/net-snmp-%s.tar.gz/download';
+my $NETDISCO_MIRROR_URL_TEMPLATE =
+  'https://raw.githubusercontent.com/netdisco/upstream-sources/master/net-snmp/net-snmp-%s.tar.gz';
+
+my %option = (version => undef, sha1 => undef, 'mirror-check' => 1);
+GetOptions(
+  \%option,
+  'version=s',
+  'sha1=s',
+  'mirror-check!',
+  'help',
+) or die "run with --help for usage\n";
+
+print_usage_and_exit() if $option{help};
+
+my $net_snmp_version = require_option('version');
+my $expected_sourceforge_sha1 = lc require_option('sha1');
+$expected_sourceforge_sha1 =~ s/\s+//g;
+
+my $sourceforge_url =
+  sprintf $SOURCEFORGE_URL_TEMPLATE, $net_snmp_version, $net_snmp_version;
+my $netdisco_mirror_url =
+  sprintf $NETDISCO_MIRROR_URL_TEMPLATE, $net_snmp_version;
+
+# Step 1: fetch the authoritative tarball from SourceForge.
+say "Downloading official tarball from SourceForge ...";
+my $sourceforge_tarball = fetch_tarball($sourceforge_url);
+
+# Step 2: verify it against the SHA1 you copied off the SourceForge page.
+# This is the trust anchor, fail loudly so nothing downstream trusts a bad file.
+my $actual_sourceforge_sha1 = sha1_hex($sourceforge_tarball);
+if ($actual_sourceforge_sha1 ne $expected_sourceforge_sha1) {
+  die "TRUST ANCHOR FAILED: the SourceForge tarball's SHA1 does not match --sha1.\n"
+    . "  expected (from you): $expected_sourceforge_sha1\n"
+    . "  actual (downloaded): $actual_sourceforge_sha1\n"
+    . "Recopy the SHA1 from https://sourceforge.net/projects/net-snmp/files/net-snmp/"
+    . "$net_snmp_version/ ; if it still fails, the download was corrupted or tampered "
+    . "with -- do NOT pin this file.\n";
+}
+say "  SHA1 verified against SourceForge: $actual_sourceforge_sha1";
+
+# Step 3: compute the SHA256 we will pin (from the now-trusted file).
+my $sha256_to_pin = sha256_hex($sourceforge_tarball);
+say "  SHA256 computed from the verified file: $sha256_to_pin";
+
+# Step 4: prove the netdisco mirror (what the alienfile actually fetches) is
+# byte-identical, so pinning this SHA256 validates against the mirror too.
+if ($option{'mirror-check'}) {
+  say "Cross-checking the netdisco mirror ...";
+  my $mirror_tarball = fetch_tarball($netdisco_mirror_url);
+  my $mirror_sha256 = sha256_hex($mirror_tarball);
+  if ($mirror_sha256 ne $sha256_to_pin) {
+    die "MIRROR MISMATCH: the netdisco mirror is NOT byte-identical to SourceForge.\n"
+      . "  SourceForge SHA256: $sha256_to_pin\n"
+      . "  mirror SHA256:      $mirror_sha256\n"
+      . "Do NOT point start_url at the mirror for this version until it is resynced, "
+      . "or pin the SourceForge /download URL instead.\n";
+  }
+  say "  Mirror is byte-identical (SHA256 matches).";
+}
+
+print_paste_block($net_snmp_version, $sha256_to_pin, $netdisco_mirror_url);
+
+# --- helpers -------------------------------------------------------------
+
+sub require_option {
+  my ($name) = @_;
+  return $option{$name} if defined $option{$name} && length $option{$name};
+  die "Missing required --$name. Run with --help for usage.\n";
+}
+
+sub fetch_tarball {
+  my ($url) = @_;
+  my $response = HTTP::Tiny->new(verify_SSL => 1)->get($url);
+  unless ($response->{success}) {
+    my $reason = $response->{status} == 599
+      ? "TLS/transport error: $response->{content}"    # 599 = internal HTTP::Tiny error
+      : "HTTP $response->{status} $response->{reason}";
+    die "Failed to download $url\n  $reason\n"
+      . "If this is a TLS error, ensure IO::Socket::SSL + Net::SSLeay are installed.\n";
+  }
+  assert_looks_like_gzip($url, $response);
+  return $response->{content};
+}
+
+# A 200 OK is not enough: the SourceForge /download redirect can land on an HTML
+# interstitial (or a stale mirror) and still return success. Catch that here with
+# a clear message, rather than letting it surface later as a confusing SHA1 mismatch.
+sub assert_looks_like_gzip {
+  my ($url, $response) = @_;
+  return if substr($response->{content}, 0, 2) eq "\x1f\x8b";   # gzip magic bytes
+
+  my $content_type = $response->{headers}{'content-type'} // '(none)';
+  $content_type = $content_type->[0] if ref $content_type eq 'ARRAY';
+  my $final_url = $response->{url} // $url;                      # post-redirect URL
+  die "NOT A TARBALL: $url\n"
+    . "  got HTTP $response->{status}, content-type '$content_type', "
+    . "@{[ length $response->{content} ]} bytes but no gzip magic bytes.\n"
+    . "SourceForge's /download redirect rotates mirrors and can serve an HTML "
+    . "interstitial instead of the file; this is usually transient. Re-run the "
+    . "command. (Final URL after redirects: $final_url)\n";
+}
+
+sub print_paste_block {
+  my ($version, $sha256, $mirror_url) = @_;
+  my $encoded_netsnmp = join '', map { sprintf '%02d', $_ } split /\./, $version;
+  say '';
+  say '=' x 72;
+  say "All checks passed. Update these in lockstep:";
+  say '=' x 72;
+  say '';
+  say "# alienfile -- start_url:";
+  say "  start_url '$mirror_url';";
+  say '';
+  say "# alienfile -- digest (keep SHA256; verified via the SourceForge SHA1 above):";
+  say "  digest 'SHA256', '$sha256';";
+  say '';
+  say "# alienfile -- gather runtime_prop version:";
+  say "  \$build->runtime_prop->{version} = '$version';";
+  say '';
+  say "# lib/Alien/SNMP.pm -- \$VERSION (net-snmp part is $encoded_netsnmp;";
+  say "#   prefix with the series/toolchain-generation digit you are releasing, e.g. 4):";
+  say "  our \$VERSION = '4.${encoded_netsnmp}00';";
+  say '';
+  say "# Also update: the POD --configure flag list in lib/Alien/SNMP.pm and a Changes entry.";
+}
+
+sub print_usage_and_exit {
+  print <<'USAGE';
+update-netsnmp-digest - verify a Net-SNMP release and emit the alienfile digest
+
+Usage:
+  maintainer/update-netsnmp-digest --version <x.y.z[.w]> --sha1 <sha1-from-sourceforge>
+
+Options:
+  --version   Net-SNMP version to bump to (e.g. 5.9.5.2).
+  --sha1      The SHA1 shown for the .tar.gz on the SourceForge files page
+              (https://sourceforge.net/projects/net-snmp/files/net-snmp/<version>/).
+              This is your trust anchor, copy it from the official page by hand.
+  --no-mirror-check   Skip confirming the netdisco mirror is byte-identical.
+  --help      This message.
+
+What it does:
+  1. Downloads the official tarball from SourceForge.
+  2. Verifies it against the SHA1 you provided (fails hard on mismatch).
+  3. Computes the SHA256 to pin in the alienfile.
+  4. Confirms the netdisco mirror is byte-identical to that file.
+  5. Prints the exact lines to update, in lockstep.
+USAGE
+  exit 0;
+}

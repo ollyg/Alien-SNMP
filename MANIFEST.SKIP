@@ -70,3 +70,9 @@
 ^_build
 ^_share
 ^.travis.yml
+
+# Project-local Claude Code instructions (not part of the distribution)
+^CLAUDE\.md
+
+# Author/maintainer tooling (not part of the distribution)
+^maintainer/

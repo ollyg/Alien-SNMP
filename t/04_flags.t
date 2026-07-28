@@ -20,6 +20,14 @@ for my $include_dir (@include_dirs) {
 ok -e "$include_dirs[0]/net-snmp/net-snmp-config.h",
   'cflags__share_build__points_at_real_netsnmp_headers';
 
+# net-snmp lists snmpIPBaseDomain.h among the transport headers to install but ships
+# it under snmplib/transports/, outside the tree the install rule reads from.  GNU
+# make swallows the resulting `install` failure, so the header just goes missing;
+# BSD and Solaris make abort the whole build.  The alienfile stages the header before
+# configure runs, and a complete header set is the observable proof that it worked.
+ok -e "$include_dirs[0]/net-snmp/library/snmpIPBaseDomain.h",
+  'cflags__share_build__installs_every_configured_transport_header';
+
 for my $lib_dir (@lib_dirs) {
     ok -d $lib_dir, "libs__share_build__lib_dir_exists ($lib_dir)";
 }

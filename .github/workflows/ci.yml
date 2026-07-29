@@ -1,0 +1,342 @@
+name: CI
+
+on:
+  # Branch work is covered by its pull request.  Listing every branch here as
+  # well would run the whole matrix twice for every push to an open PR, since
+  # the two events do not share a concurrency group.
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * 1'   # Monday 05:00 UTC: catches upstream drift
+
+# Nothing here writes to the repository, so drop the default token down to read.
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref.  head_ref is used for pull requests so a
+# branch push and its PR do not fight over one group.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+# This distribution always builds Net-SNMP from source: the alienfile's probe hook
+# returns 'share' unconditionally, so there is no ALIEN_INSTALL_TYPE axis to test.
+# Setting ALIEN_INSTALL_TYPE=system would not fall back, it would abort the build
+# with "requested system install not available".  What *is* worth varying is
+# whether an operating system net-snmp is present while we build our own, which is
+# the system_netsnmp axis below.
+env:
+  AUTOMATED_TESTING: 1
+  NONINTERACTIVE_TESTING: 1
+  PERL_MM_USE_DEFAULT: 1
+
+jobs:
+
+  # ---------------------------------------------------------------
+  # Linux, native, both architectures, multiple perls
+  # ---------------------------------------------------------------
+  linux:
+    name: linux ${{ matrix.os }} / perl ${{ matrix.perl }} / os-netsnmp ${{ matrix.system_netsnmp }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+        perl: ['5.36', '5.40']
+        system_netsnmp: [absent, present]
+    steps:
+      - uses: actions/checkout@v6
+
+      # libssl-dev is not optional: the alienfile passes --enable-blumenthal-aes,
+      # and net-snmp's configure hard-errors with "Blumenthal draft requires
+      # OpenSSL with AES functions enabled" when the headers are missing.
+      - name: Install build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev
+          if [ "${{ matrix.system_netsnmp }}" = "present" ]; then
+            sudo apt-get install -y libsnmp-dev snmp
+          fi
+
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+          install-modules-with: cpanm
+
+      - name: Install dependencies
+        run: cpanm --notest --installdeps .
+
+      - name: Build and test
+        run: |
+          perl Makefile.PL
+          make
+          make test
+
+      # Every CPAN Testers failure this distribution has ever had was an *install*
+      # failure, which `make test` never reaches.  INSTALL_BASE also puts the share
+      # dir somewhere the run-path baked into the XS does not point at, so this
+      # doubles as proof that the use-time preload of libnetsnmp works.
+      - name: Install into a temporary prefix and load the result
+        run: |
+          set -eux
+          ARCH=$(perl -MConfig -e 'print $Config{archname}')
+          make install INSTALL_BASE="$RUNNER_TEMP/ib"
+          perl -I"$RUNNER_TEMP/ib/lib/perl5/$ARCH" -I"$RUNNER_TEMP/ib/lib/perl5" \
+            -MSNMP -e 'print "installed SNMP $SNMP::VERSION\n"'
+          find "$RUNNER_TEMP/ib" -type d -path '*auto/share/dist/Alien-SNMP'
+          make install DESTDIR="$RUNNER_TEMP/stage"
+          find "$RUNNER_TEMP/stage" -name 'SNMP.pm' | head -5
+
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          uname -a
+          perl -V
+          ldd blib/arch/auto/*/*/*.so 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: linux-${{ matrix.os }}-${{ matrix.perl }}-${{ matrix.system_netsnmp }}
+          path: |
+            _alien/**/config.log
+            _alien/**/*.log
+          retention-days: 14
+
+  # ---------------------------------------------------------------
+  # Linux distro spread: different libc, compiler, net-snmp packaging.
+  # alpine is musl, which catches portability bugs glibc hides.
+  # These run without an operating system net-snmp; the masking case is covered
+  # by the system_netsnmp axis on the native job above and does not need
+  # repeating per distribution.
+  # ---------------------------------------------------------------
+  linux-distro:
+    name: ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { image: 'debian:12',     label: debian-12 }
+          - { image: 'debian:trixie', label: debian-trixie }
+          - { image: 'almalinux:9',   label: almalinux-9 }
+          - { image: 'alpine:3.21',   label: alpine-3.21 }
+    steps:
+      # Runs before checkout so the action can use git rather than a tarball
+      # download.  OpenSSL headers are required, see the note on the native job.
+      - name: Install toolchain
+        run: |
+          set -eux
+          case "${{ matrix.image }}" in
+            debian*)
+              apt-get update
+              apt-get install -y perl build-essential pkg-config cpanminus \
+                                 libssl-dev ca-certificates curl git
+              ;;
+            almalinux*)
+              dnf -y install perl perl-devel perl-App-cpanminus \
+                             perl-ExtUtils-MakeMaker gcc make openssl-devel \
+                             pkgconf-pkg-config tar git findutils
+              ;;
+            alpine*)
+              apk add --no-cache perl perl-dev perl-app-cpanminus build-base \
+                                 openssl-dev pkgconf tar git
+              ;;
+          esac
+
+      - uses: actions/checkout@v6
+
+      - name: Build and test
+        run: |
+          cpanm --notest --installdeps .
+          perl Makefile.PL
+          make
+          make test
+
+      - name: Install into a temporary prefix and load the result
+        run: |
+          set -eux
+          ARCH=$(perl -MConfig -e 'print $Config{archname}')
+          make install INSTALL_BASE=/tmp/ib
+          perl -I"/tmp/ib/lib/perl5/$ARCH" -I/tmp/ib/lib/perl5 \
+            -MSNMP -e 'print "installed SNMP $SNMP::VERSION\n"'
+          make install DESTDIR=/tmp/stage
+          find /tmp/stage -name 'SNMP.pm' | head -5
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: distro-${{ matrix.label }}
+          path: |
+            _alien/**/config.log
+            _alien/**/*.log
+          retention-days: 14
+
+  # ---------------------------------------------------------------
+  # macOS.  macos-15 and macos-15-intel are the same OS release on the two
+  # architectures, so a failure in one and not the other is architecture and
+  # nothing else.  macos-latest is macOS 26 on Apple Silicon and is carried
+  # separately for newest-OS coverage.
+  # Intel hosted runners are scheduled for sunset in Aug 2027.
+  # ---------------------------------------------------------------
+  macos:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel, macos-latest]
+    steps:
+      - uses: actions/checkout@v6
+
+      # Homebrew's openssl@3 is keg-only, so its pkgconfig directory is not on the
+      # default search path and net-snmp's configure can fail to find it.  Exported
+      # rather than left to chance, without hardcoding /usr/local vs /opt/homebrew.
+      - name: Expose Homebrew OpenSSL to configure
+        run: |
+          set -eu
+          if PREFIX="$(brew --prefix openssl@3 2>/dev/null)"; then
+            echo "PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
+          fi
+
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: '5.40'
+          install-modules-with: cpanm
+
+      - name: Confirm architecture
+        run: |
+          uname -m
+          lipo -archs "$(which perl)"
+          sysctl -n sysctl.proc_translated 2>/dev/null || echo "not translated"
+
+      - name: Install dependencies
+        run: cpanm --notest --installdeps .
+
+      - name: Build and test
+        run: |
+          perl Makefile.PL
+          make
+          make test
+
+      - name: Install into a temporary prefix and load the result
+        run: |
+          set -eux
+          ARCH=$(perl -MConfig -e 'print $Config{archname}')
+          make install INSTALL_BASE="$RUNNER_TEMP/ib"
+          perl -I"$RUNNER_TEMP/ib/lib/perl5/$ARCH" -I"$RUNNER_TEMP/ib/lib/perl5" \
+            -MSNMP -e 'print "installed SNMP $SNMP::VERSION\n"'
+          make install DESTDIR="$RUNNER_TEMP/stage"
+          find "$RUNNER_TEMP/stage" -name 'SNMP.pm' | head -5
+
+      # The XS records libnetsnmp by absolute install name on darwin, so when a
+      # load fails these three views say which path was baked in and what is
+      # actually there.
+      - name: Mach-O linkage on failure
+        if: failure()
+        run: |
+          echo "=== install_name of staged dylibs ==="
+          find _alien blib -name 'libnetsnmp*.dylib' -exec otool -D {} \; || true
+          echo "=== load commands of built bundles ==="
+          find blib -name '*.bundle' -exec otool -L {} \; || true
+          echo "=== recorded rpaths ==="
+          find blib -name '*.bundle' -exec sh -c \
+            'echo "--- $1"; otool -l "$1" | grep -A2 LC_RPATH' _ {} \; || true
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: macos-${{ matrix.os }}
+          path: |
+            _alien/**/config.log
+            _alien/**/*.log
+          retention-days: 14
+
+  # ---------------------------------------------------------------
+  # FreeBSD: QEMU VMs on the free Ubuntu runner.
+  # gmake is deliberately not installed.  Alien::Build runs $Config{make}, which
+  # here is BSD make, and BSD make running recipes under `sh -e` is exactly the
+  # condition that aborted the build on these platforms before 4.0509050201.
+  # OpenSSL comes from the FreeBSD base system, so nothing extra is needed.
+  # ---------------------------------------------------------------
+  freebsd:
+    name: freebsd ${{ matrix.release }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # One current release per push or pull request.  The full spread runs on
+        # the weekly schedule and on demand, where three QEMU boots and three
+        # net-snmp compiles are not in anyone's feedback loop.  Run it on demand
+        # before handing a release over.
+        release: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+                     && fromJSON('["13.5","14.4","15.1"]')
+                     || fromJSON('["14.4"]') }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Test in FreeBSD ${{ matrix.release }}
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: ${{ matrix.release }}
+          usesh: true
+          sync: rsync
+          cache-after-prepare: true
+          envs: 'AUTOMATED_TESTING NONINTERACTIVE_TESTING PERL_MM_USE_DEFAULT'
+          prepare: |
+            pkg install -y perl5 p5-App-cpanminus pkgconf
+          run: |
+            set -eux
+            freebsd-version
+            perl -V:archname -V:osvers
+            cpanm --notest --installdeps .
+            perl Makefile.PL
+            make
+            make test
+            ARCH=$(perl -MConfig -e 'print $Config{archname}')
+            make install INSTALL_BASE=/tmp/ib
+            perl -I"/tmp/ib/lib/perl5/$ARCH" -I/tmp/ib/lib/perl5 \
+              -MSNMP -e 'print "installed SNMP $SNMP::VERSION\n"'
+            make install DESTDIR=/tmp/stage
+            find /tmp/stage -name 'SNMP.pm' | head -5
+
+  # ---------------------------------------------------------------
+  # Author tests.  These are skipped for installers, so nothing else in this
+  # workflow runs t/05_meta.t (tracked META drift), t/07_alienfile_hygiene.t (no
+  # build step may write outside $DESTDIR) or the POD tests.
+  # Test::CheckManifest is deliberately not installed: t/manifest.t compares the
+  # MANIFEST against files on disk, and by this point the tree holds blib/ and
+  # _alien/.  Run `make manifest` locally instead.
+  # ---------------------------------------------------------------
+  author-tests:
+    name: author tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev
+
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: '5.40'
+          install-modules-with: cpanm
+
+      - name: Install dependencies
+        run: |
+          cpanm --notest --installdeps .
+          cpanm --notest Test::Pod Test::Pod::Coverage CPAN::Meta
+
+      - name: Build and run the author suite
+        env:
+          RELEASE_TESTING: 1
+          AUTHOR_TESTING: 1
+        run: |
+          perl Makefile.PL
+          make
+          make test

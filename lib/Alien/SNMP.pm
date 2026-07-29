@@ -34,11 +34,27 @@ sub _preload_netsnmp {
 # because the preload is best-effort, so t/06 asserts this finds something: an
 # ELF-only pattern here is what left macOS unable to run its own test suite.
 # The capture also untaints the trusted share-dir path for dl_load_file.
+#
+# Sorted, not just filtered.  A share dir holds every alias of the same file
+# (libnetsnmp.so, .so.45, .so.45.0.0), and which one is preloaded first decides
+# whether musl can use it: glibc matches an already-loaded object by its
+# DT_SONAME, musl matches by the name it was opened under and then dedups by
+# inode, so on Alpine only the first alias opened can satisfy the XS.
 sub _netsnmp_dynamic_libs {
     my ($class) = @_;
     return unless $class->install_type eq 'share';
-    return map { m{(/.*/libnetsnmp(?:\.[0-9]+)*\.(?:so(?:\.[0-9]+)*|dylib))\z} ? $1 : () }
-           $class->dynamic_libs;
+    my @libnetsnmp =
+      map { m{(/.*/libnetsnmp(?:\.[0-9]+)*\.(?:so(?:\.[0-9]+)*|dylib))\z} ? $1 : () }
+      $class->dynamic_libs;
+    return sort { _preload_first($a) <=> _preload_first($b) } @libnetsnmp;
+}
+
+# 0 sorts ahead of 1: the ELF SONAME alias, which is what the XS records as its
+# dependency, and every darwin name, where dyld matches by the install name
+# baked into the library and the order is therefore irrelevant.
+sub _preload_first {
+    my ($path) = @_;
+    return $path =~ m{/libnetsnmp\.so\.[0-9]+\z|\.dylib\z} ? 0 : 1;
 }
 
 1;

@@ -9,6 +9,8 @@
     the build outright on FreeBSD and Solaris
   * Fixes installation on macOS, where the bundled SNMP and NetSNMP::*
     modules could not load libnetsnmp during make test
+  * Fixes installation on Alpine and other musl systems, which failed the
+    same way
   * New documentation for the bundled Perl modules, MIB handling and the index
     files net-snmp 5.9 removed, the command line utilities, and the effects of
     installing into a system perl that already has SNMP.pm

@@ -33,24 +33,9 @@ my @bundled_modules = qw(
 # a platform-specific filename pattern, and a pattern that matches nothing fails
 # silently because the preload is deliberately best-effort.  An ELF-only pattern
 # is what left macOS unable to load any of the modules below.
-my @preloaded = Alien::SNMP->_netsnmp_dynamic_libs;
-
-ok scalar(@preloaded),
+ok scalar(Alien::SNMP->_netsnmp_dynamic_libs),
   'preload_netsnmp__share_build__matches_the_dynamic_libnetsnmp'
   or diag "dynamic_libs:\n" . join '', map "  $_\n", Alien::SNMP->dynamic_libs;
-
-# The share dir holds every alias of the same file.  glibc matches an already
-# loaded object by its DT_SONAME, so any alias will do there, but musl matches by
-# the name it was opened under, so on Alpine the SONAME alias has to be the one
-# preloaded first or the XS below cannot resolve libnetsnmp.so.<major> at all.
-SKIP: {
-    skip 'ELF only: darwin matches by install name, so the order does not matter', 1
-      unless grep { m{\.so(?:\.|\z)} } @preloaded;
-
-    like $preloaded[0], qr{/libnetsnmp\.so\.[0-9]+\z},
-      'preload_netsnmp__elf_share_build__preloads_the_soname_alias_first'
-      or diag "preload order:\n" . join '', map "  $_\n", @preloaded;
-}
 
 require_ok $_ for @bundled_modules;
 

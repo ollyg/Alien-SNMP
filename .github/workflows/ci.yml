@@ -75,19 +75,24 @@ jobs:
           make test
 
       # Every CPAN Testers failure this distribution has ever had was an *install*
-      # failure, which `make test` never reaches.  INSTALL_BASE also puts the share
-      # dir somewhere the run-path baked into the XS does not point at, so this
-      # doubles as proof that the use-time preload of libnetsnmp works.
-      - name: Install into a temporary prefix and load the result
+      # failure, which `make test` never reaches.  DESTDIR staging is the case that
+      # broke: the previous release wrote to live absolute paths during the build
+      # and failed wherever those were not writable.  Loading out of the staged
+      # tree also exercises the use-time preload, because the run-path baked into
+      # the XS points at the unstaged location.
+      # INSTALL_BASE cannot be tested here: MakeMaker resolves install paths when
+      # Makefile.PL runs, so a macro on the `make install` line is silently
+      # ignored.  The install-base job below configures with it properly.
+      - name: Install into a staging root and load the result
         run: |
           set -eux
-          ARCH=$(perl -MConfig -e 'print $Config{archname}')
-          make install INSTALL_BASE="$RUNNER_TEMP/ib"
-          perl -I"$RUNNER_TEMP/ib/lib/perl5/$ARCH" -I"$RUNNER_TEMP/ib/lib/perl5" \
-            -MSNMP -e 'print "installed SNMP $SNMP::VERSION\n"'
-          find "$RUNNER_TEMP/ib" -type d -path '*auto/share/dist/Alien-SNMP'
-          make install DESTDIR="$RUNNER_TEMP/stage"
-          find "$RUNNER_TEMP/stage" -name 'SNMP.pm' | head -5
+          STAGE="$RUNNER_TEMP/stage"
+          SITEARCH=$(perl -MConfig -e 'print $Config{installsitearch}')
+          SITELIB=$(perl -MConfig -e 'print $Config{installsitelib}')
+          make install DESTDIR="$STAGE"
+          perl -I"$STAGE$SITEARCH" -I"$STAGE$SITELIB" \
+            -MSNMP -e 'print "staged SNMP $SNMP::VERSION\n"'
+          test -d "$STAGE$SITEARCH/auto/share/dist/Alien-SNMP"
 
       - name: Diagnostics on failure
         if: failure()
@@ -96,7 +101,7 @@ jobs:
           perl -V
           ldd blib/arch/auto/*/*/*.so 2>/dev/null || true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: linux-${{ matrix.os }}-${{ matrix.perl }}-${{ matrix.system_netsnmp }}
@@ -127,6 +132,9 @@ jobs:
     steps:
       # Runs before checkout so the action can use git rather than a tarball
       # download.  OpenSSL headers are required, see the note on the native job.
+      # The TLS perl modules come from the distribution rather than CPAN: the
+      # start_url is https, so Alien::Build wants a TLS fetcher, and building
+      # Net::SSLeay from source fails outright on debian and alpine here.
       - name: Install toolchain
         run: |
           set -eux
@@ -134,16 +142,19 @@ jobs:
             debian*)
               apt-get update
               apt-get install -y perl build-essential pkg-config cpanminus \
-                                 libssl-dev ca-certificates curl git
+                                 libssl-dev libnet-ssleay-perl libio-socket-ssl-perl \
+                                 ca-certificates curl git
               ;;
             almalinux*)
               dnf -y install perl perl-devel perl-App-cpanminus \
                              perl-ExtUtils-MakeMaker gcc make openssl-devel \
+                             perl-Net-SSLeay perl-IO-Socket-SSL \
                              pkgconf-pkg-config tar git findutils
               ;;
             alpine*)
               apk add --no-cache perl perl-dev perl-app-cpanminus build-base \
-                                 openssl-dev pkgconf tar git
+                                 openssl-dev perl-net-ssleay perl-io-socket-ssl \
+                                 pkgconf tar git
               ;;
           esac
 
@@ -156,17 +167,19 @@ jobs:
           make
           make test
 
-      - name: Install into a temporary prefix and load the result
+      # See the note on the native job: DESTDIR is the install path worth testing,
+      # and INSTALL_BASE has to reach Makefile.PL to have any effect.
+      - name: Install into a staging root and load the result
         run: |
           set -eux
-          ARCH=$(perl -MConfig -e 'print $Config{archname}')
-          make install INSTALL_BASE=/tmp/ib
-          perl -I"/tmp/ib/lib/perl5/$ARCH" -I/tmp/ib/lib/perl5 \
-            -MSNMP -e 'print "installed SNMP $SNMP::VERSION\n"'
+          SITEARCH=$(perl -MConfig -e 'print $Config{installsitearch}')
+          SITELIB=$(perl -MConfig -e 'print $Config{installsitelib}')
           make install DESTDIR=/tmp/stage
-          find /tmp/stage -name 'SNMP.pm' | head -5
+          perl -I"/tmp/stage$SITEARCH" -I"/tmp/stage$SITELIB" \
+            -MSNMP -e 'print "staged SNMP $SNMP::VERSION\n"'
+          test -d "/tmp/stage$SITEARCH/auto/share/dist/Alien-SNMP"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: distro-${{ matrix.label }}
@@ -192,13 +205,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # Homebrew's openssl@3 is keg-only, so its pkgconfig directory is not on the
-      # default search path and net-snmp's configure can fail to find it.  Exported
-      # rather than left to chance, without hardcoding /usr/local vs /opt/homebrew.
+      # Homebrew's openssl@3 is keg-only.  PKG_CONFIG_PATH alone is not enough:
+      # net-snmp checks for openssl/aes.h with a plain header check long before it
+      # consults pkg-config, and /opt/homebrew/include is not a default compiler
+      # search path, so --enable-blumenthal-aes aborts configure on Apple Silicon.
+      # Intel gets away with it only because /usr/local/include is searched by
+      # default.  This makes CI deterministic but it papers over a real gap: the
+      # alienfile does not locate keg-only openssl itself, so an Apple Silicon
+      # user can hit the same abort.
       - name: Expose Homebrew OpenSSL to configure
         run: |
           set -eu
           if PREFIX="$(brew --prefix openssl@3 2>/dev/null)"; then
+            echo "CPPFLAGS=-I$PREFIX/include ${CPPFLAGS:-}" >> "$GITHUB_ENV"
+            echo "LDFLAGS=-L$PREFIX/lib ${LDFLAGS:-}" >> "$GITHUB_ENV"
             echo "PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
           fi
 
@@ -222,15 +242,17 @@ jobs:
           make
           make test
 
-      - name: Install into a temporary prefix and load the result
+      # See the note on the native Linux job.
+      - name: Install into a staging root and load the result
         run: |
           set -eux
-          ARCH=$(perl -MConfig -e 'print $Config{archname}')
-          make install INSTALL_BASE="$RUNNER_TEMP/ib"
-          perl -I"$RUNNER_TEMP/ib/lib/perl5/$ARCH" -I"$RUNNER_TEMP/ib/lib/perl5" \
-            -MSNMP -e 'print "installed SNMP $SNMP::VERSION\n"'
-          make install DESTDIR="$RUNNER_TEMP/stage"
-          find "$RUNNER_TEMP/stage" -name 'SNMP.pm' | head -5
+          STAGE="$RUNNER_TEMP/stage"
+          SITEARCH=$(perl -MConfig -e 'print $Config{installsitearch}')
+          SITELIB=$(perl -MConfig -e 'print $Config{installsitelib}')
+          make install DESTDIR="$STAGE"
+          perl -I"$STAGE$SITEARCH" -I"$STAGE$SITELIB" \
+            -MSNMP -e 'print "staged SNMP $SNMP::VERSION\n"'
+          test -d "$STAGE$SITEARCH/auto/share/dist/Alien-SNMP"
 
       # The XS records libnetsnmp by absolute install name on darwin, so when a
       # load fails these three views say which path was baked in and what is
@@ -246,7 +268,7 @@ jobs:
           find blib -name '*.bundle' -exec sh -c \
             'echo "--- $1"; otool -l "$1" | grep -A2 LC_RPATH' _ {} \; || true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: macos-${{ matrix.os }}
@@ -296,12 +318,60 @@ jobs:
             perl Makefile.PL
             make
             make test
-            ARCH=$(perl -MConfig -e 'print $Config{archname}')
-            make install INSTALL_BASE=/tmp/ib
-            perl -I"/tmp/ib/lib/perl5/$ARCH" -I/tmp/ib/lib/perl5 \
-              -MSNMP -e 'print "installed SNMP $SNMP::VERSION\n"'
+            SITEARCH=$(perl -MConfig -e 'print $Config{installsitearch}')
+            SITELIB=$(perl -MConfig -e 'print $Config{installsitelib}')
             make install DESTDIR=/tmp/stage
-            find /tmp/stage -name 'SNMP.pm' | head -5
+            perl -I"/tmp/stage$SITEARCH" -I"/tmp/stage$SITELIB" \
+              -MSNMP -e 'print "staged SNMP $SNMP::VERSION\n"'
+            test -d "/tmp/stage$SITEARCH/auto/share/dist/Alien-SNMP"
+
+  # ---------------------------------------------------------------
+  # The local::lib layout, which is how most people install this without root.
+  # INSTALL_BASE has to reach Makefile.PL: MakeMaker resolves the install paths
+  # there, so passing it to `make install` does nothing.  It also puts the share
+  # dir somewhere the run-path baked into the XS does not point at, which makes
+  # the use-time preload of libnetsnmp load-bearing rather than belt and braces.
+  # One job is enough; the layout does not vary by platform.
+  # ---------------------------------------------------------------
+  install-base:
+    name: install-base prefix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev
+
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: '5.40'
+          install-modules-with: cpanm
+
+      - name: Install dependencies
+        run: cpanm --notest --installdeps .
+
+      - name: Configure, build and install with INSTALL_BASE
+        run: |
+          set -eux
+          IB="$RUNNER_TEMP/ib"
+          ARCH=$(perl -MConfig -e 'print $Config{archname}')
+          perl Makefile.PL INSTALL_BASE="$IB"
+          make
+          make install
+          perl -I"$IB/lib/perl5/$ARCH" -I"$IB/lib/perl5" \
+            -MSNMP -e 'print "installed SNMP $SNMP::VERSION\n"'
+          test -d "$IB/lib/perl5/$ARCH/auto/share/dist/Alien-SNMP"
+
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: install-base
+          path: |
+            _alien/**/config.log
+            _alien/**/*.log
+          retention-days: 14
 
   # ---------------------------------------------------------------
   # Author tests.  These are skipped for installers, so nothing else in this

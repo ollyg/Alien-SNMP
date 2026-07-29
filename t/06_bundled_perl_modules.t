@@ -29,6 +29,14 @@ my @bundled_modules = qw(
   NetSNMP::default_store
 );
 
+# Checked before the modules that depend on it: the preload matches libnetsnmp by
+# a platform-specific filename pattern, and a pattern that matches nothing fails
+# silently because the preload is deliberately best-effort.  An ELF-only pattern
+# is what left macOS unable to load any of the modules below.
+ok scalar(Alien::SNMP->_netsnmp_dynamic_libs),
+  'preload_netsnmp__share_build__matches_the_dynamic_libnetsnmp'
+  or diag "dynamic_libs:\n" . join '', map "  $_\n", Alien::SNMP->dynamic_libs;
+
 require_ok $_ for @bundled_modules;
 
 my $alien_lib_root   = _inc_root('Alien/SNMP.pm');

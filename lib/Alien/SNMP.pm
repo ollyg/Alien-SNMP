@@ -9,25 +9,36 @@ our $VERSION = '4.0509050201';
 
 # Preload the dynamic Net-SNMP library with global symbol visibility so that
 # the bundled SNMP XS module (which has `use Alien::SNMP;` injected ahead of
-# its XSLoader call) and any downstream XS resolve libnetsnmp by SONAME from
-# our share dir, independent of a baked-in RUNPATH.  This is what lets the test
-# suite pass before `make install` populates the final share dir (the window
-# CPAN Testers run in), and lets the distribution work with no system-level
-# libnetsnmp present.
+# its XSLoader call) and any downstream XS resolve libnetsnmp from our share
+# dir whatever path was baked into them: the loader matches the already-loaded
+# image by SONAME on ELF, and by install name on darwin.  This is what lets the
+# test suite pass before `make install` populates the final share dir (the
+# window CPAN Testers run in), and lets the distribution work with no
+# system-level libnetsnmp present.
 # Best-effort: never let a failure here break `use Alien::SNMP` (e.g. when the
 # module is loaded from source before the share dir exists).  The baked-in
-# RUNPATH still resolves libnetsnmp once the share is installed.
+# run-path still resolves libnetsnmp once the share is installed.
 eval { __PACKAGE__->_preload_netsnmp };
 
 sub _preload_netsnmp {
     my ($class) = @_;
-    return unless $class->install_type eq 'share';
     require DynaLoader;
-    for my $shared_lib ($class->dynamic_libs) {
-        # Capture (untaint) the trusted share-dir path; skip non-libnetsnmp libs.
-        next unless $shared_lib =~ m{(/.*/libnetsnmp\.so(?:\.[0-9]+)*)\z};
-        DynaLoader::dl_load_file($1, 0x01);   # 0x01 = RTLD_GLOBAL
-    }
+    DynaLoader::dl_load_file($_, 0x01)   # 0x01 = RTLD_GLOBAL
+      for $class->_netsnmp_dynamic_libs;
+}
+
+# The dynamic libnetsnmp under whichever name this platform gives it:
+# libnetsnmp.so[.N...] on ELF, libnetsnmp[.N...].dylib on darwin.  Sibling
+# libraries (libnetsnmpagent and friends) deliberately do not match; libnetsnmp
+# is what the bundled XS records as a dependency.  Matching nothing is silent,
+# because the preload is best-effort, so t/06 asserts this finds something: an
+# ELF-only pattern here is what left macOS unable to run its own test suite.
+# The capture also untaints the trusted share-dir path for dl_load_file.
+sub _netsnmp_dynamic_libs {
+    my ($class) = @_;
+    return unless $class->install_type eq 'share';
+    return map { m{(/.*/libnetsnmp(?:\.[0-9]+)*\.(?:so(?:\.[0-9]+)*|dylib))\z} ? $1 : () }
+           $class->dynamic_libs;
 }
 
 1;
@@ -82,6 +93,17 @@ The library is built with the following options:
 =item C<--with-defaults>
 
 =back
+
+=head2 macOS
+
+Build this with a Homebrew or perlbrew perl. Apple's F</usr/bin/perl> is not a
+supported target: it is frozen at whatever version macOS shipped, its
+directories need root, and Apple has deprecated the runtime. Continuous
+integration covers Homebrew perl on both Intel and Apple Silicon.
+
+If a bare C<perl> on your C<PATH> still resolves to F</usr/bin/perl>,
+C<Makefile.PL> aborts with C<Can't locate Alien/Build/MM.pm>. Run it with the
+full path to the perl you mean.
 
 =head1 BACKGROUND
 
@@ -138,6 +160,10 @@ the share dir into the XS modules' run-path, and this module additionally
 preloads the share copy at use-time. Note that the run-path is emitted as
 C<DT_RUNPATH>, which C<LD_LIBRARY_PATH> takes precedence over; the preload is
 what makes the choice robust in that case.
+
+On macOS the mechanism differs but the outcome does not: the XS modules record
+C<libnetsnmp> by its absolute path in the installed share dir, so that is the
+copy they load.
 
 =head2 Shadowing an operating system packaged SNMP.pm
 

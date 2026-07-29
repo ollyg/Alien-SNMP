@@ -110,6 +110,17 @@ The library is built with the following options:
 
 =back
 
+=head2 macOS
+
+Build this with a Homebrew or perlbrew perl. Apple's F</usr/bin/perl> is not a
+supported target: it is frozen at whatever version macOS shipped, its
+directories need root, and Apple has deprecated the runtime. Continuous
+integration covers Homebrew perl on both Intel and Apple Silicon.
+
+If a bare C<perl> on your C<PATH> still resolves to F</usr/bin/perl>,
+C<Makefile.PL> aborts with C<Can't locate Alien/Build/MM.pm>. Run it with the
+full path to the perl you mean.
+
 =head1 BACKGROUND
 
 Net-SNMP's Perl modules live in the Net-SNMP source tree; they are not a

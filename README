@@ -25,6 +25,17 @@ DESCRIPTION
     "--enable-blumenthal-aes"
     "--with-defaults"
 
+  macOS
+    Build this with a Homebrew or perlbrew perl. Apple's /usr/bin/perl is
+    not a supported target: it is frozen at whatever version macOS shipped,
+    its directories need root, and Apple has deprecated the runtime.
+    Continuous integration covers Homebrew perl on both Intel and Apple
+    Silicon.
+
+    If a bare "perl" on your "PATH" still resolves to /usr/bin/perl,
+    "Makefile.PL" aborts with "Can't locate Alien/Build/MM.pm". Run it with
+    the full path to the perl you mean.
+
 BACKGROUND
     Net-SNMP's Perl modules live in the Net-SNMP source tree; they are not a
     separately maintained CPAN distribution. The standalone "SNMP" release

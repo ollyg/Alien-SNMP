@@ -11,6 +11,9 @@
     modules could not load libnetsnmp during make test
   * Fixes installation on Alpine and other musl systems, which failed the
     same way
+  * Installs two more net-snmp headers that upstream ships but forgets to
+    install, without which nothing can compile against this Alien on
+    FreeBSD 15 or 16
   * New documentation for the bundled Perl modules, MIB handling and the index
     files net-snmp 5.9 removed, the command line utilities, and the effects of
     installing into a system perl that already has SNMP.pm

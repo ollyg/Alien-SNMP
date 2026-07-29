@@ -135,6 +135,7 @@ jobs:
       # The TLS perl modules come from the distribution rather than CPAN: the
       # start_url is https, so Alien::Build wants a TLS fetcher, and building
       # Net::SSLeay from source fails outright on debian and alpine here.
+      # `file` is needed by libtool, and neither debian image ships it.
       - name: Install toolchain
         run: |
           set -eux
@@ -143,7 +144,7 @@ jobs:
               apt-get update
               apt-get install -y perl build-essential pkg-config cpanminus \
                                  libssl-dev libnet-ssleay-perl libio-socket-ssl-perl \
-                                 ca-certificates curl git
+                                 ca-certificates curl git file
               ;;
             almalinux*)
               dnf -y install perl perl-devel perl-App-cpanminus \
@@ -205,31 +206,39 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # Homebrew perl, not a downloaded one: it is what macOS users of this
+      # distribution actually run, and it is built against the same Homebrew
+      # OpenSSL that net-snmp links here.  The hostedtoolcache perl is not, and
+      # mixing the two aborts the bundled perl module build with "loading
+      # libcrypto in an unsafe way".
+      - name: Install Homebrew perl
+        run: |
+          set -eux
+          for formula in perl cpanminus; do
+            brew list --formula "$formula" >/dev/null 2>&1 || brew install "$formula"
+          done
+          echo "$(brew --prefix perl)/bin" >> "$GITHUB_PATH"
+
       # Homebrew's openssl@3 is keg-only.  PKG_CONFIG_PATH alone is not enough:
       # net-snmp checks for openssl/aes.h with a plain header check long before it
       # consults pkg-config, and /opt/homebrew/include is not a default compiler
       # search path, so --enable-blumenthal-aes aborts configure on Apple Silicon.
       # Intel gets away with it only because /usr/local/include is searched by
-      # default.  This makes CI deterministic but it papers over a real gap: the
-      # alienfile does not locate keg-only openssl itself, so an Apple Silicon
-      # user can hit the same abort.
+      # default.  LDFLAGS is deliberately not set: pkg-config supplies -L for the
+      # link, and adding it here put Homebrew's libcrypto in front of Apple's.
       - name: Expose Homebrew OpenSSL to configure
         run: |
           set -eu
           if PREFIX="$(brew --prefix openssl@3 2>/dev/null)"; then
             echo "CPPFLAGS=-I$PREFIX/include ${CPPFLAGS:-}" >> "$GITHUB_ENV"
-            echo "LDFLAGS=-L$PREFIX/lib ${LDFLAGS:-}" >> "$GITHUB_ENV"
             echo "PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
           fi
 
-      - uses: shogo82148/actions-setup-perl@v1
-        with:
-          perl-version: '5.40'
-          install-modules-with: cpanm
-
-      - name: Confirm architecture
+      - name: Confirm perl and architecture
         run: |
           uname -m
+          which perl cpanm
+          perl -V:version -V:archname
           lipo -archs "$(which perl)"
           sysctl -n sysctl.proc_translated 2>/dev/null || echo "not translated"
 

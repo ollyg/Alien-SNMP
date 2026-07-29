@@ -77,6 +77,10 @@ BUNDLED PERL MODULES
     precedence over; the preload is what makes the choice robust in that
     case.
 
+    On macOS the mechanism differs but the outcome does not: the XS modules
+    record "libnetsnmp" by its absolute path in the installed share dir, so
+    that is the copy they load.
+
   Shadowing an operating system packaged SNMP.pm
     Some operating systems ship Net-SNMP's Perl modules as a package of
     their own, installed into the system perl's vendor directories.

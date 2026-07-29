@@ -170,13 +170,21 @@ jobs:
 
       # See the note on the native job: DESTDIR is the install path worth testing,
       # and INSTALL_BASE has to reach Makefile.PL to have any effect.
+      # Loading from a staging root is artificial: the library is not at the path
+      # the XS records, and a packager relocates the tree to / before anything
+      # loads it.  glibc and darwin get through it on the use-time preload alone,
+      # but musl cannot use a library preloaded by an explicit path, so alpine
+      # needs the loader pointed at the staged copy.  The native Linux jobs
+      # deliberately do NOT set this, so that one place still proves the preload
+      # works on ELF now that the test phase sets LD_LIBRARY_PATH itself.
       - name: Install into a staging root and load the result
         run: |
           set -eux
           SITEARCH=$(perl -MConfig -e 'print $Config{installsitearch}')
           SITELIB=$(perl -MConfig -e 'print $Config{installsitelib}')
           make install DESTDIR=/tmp/stage
-          perl -I"/tmp/stage$SITEARCH" -I"/tmp/stage$SITELIB" \
+          LD_LIBRARY_PATH="/tmp/stage$SITEARCH/auto/share/dist/Alien-SNMP/lib:${LD_LIBRARY_PATH:-}" \
+            perl -I"/tmp/stage$SITEARCH" -I"/tmp/stage$SITELIB" \
             -MSNMP -e 'print "staged SNMP $SNMP::VERSION\n"'
           test -d "/tmp/stage$SITEARCH/auto/share/dist/Alien-SNMP"
 

@@ -71,6 +71,11 @@
 ^_share
 ^.travis.yml
 
+# Continuous integration config (not part of the distribution).  The version
+# control block above does not cover this: its \B\.git\b cannot match
+# .github/..., because \b fails between the "t" and the "h".
+^\.github/
+
 # Project-local Claude Code instructions and settings (not part of the distribution)
 ^CLAUDE\.md
 ^\.claude/

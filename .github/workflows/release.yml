@@ -1,0 +1,70 @@
+name: Release Alien::SNMP to CPAN
+on:
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Run tests'
+        required: false
+        default:  'true'
+      debug_tests:
+        description: 'With tmate session'
+        required: false
+        default:  'false'
+  push:
+    # e.g. 4.0509050201
+    tags:
+      - '4.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
+
+jobs:
+  run_tests:
+    name: Re-run CI Tests
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.run_tests == 'true')
+      || (github.event_name != 'workflow_dispatch' && github.repository == 'ollyg/Alien-SNMP')
+    uses: ./.github/workflows/ci.yml # test workflow file
+
+  build_and_release:
+    name: Build and CPAN Upload
+    steps:
+      - uses: actions/checkout@v6
+
+      # libssl-dev is not optional: the alienfile passes --enable-blumenthal-aes,
+      # and net-snmp's configure hard-errors with "Blumenthal draft requires
+      # OpenSSL with AES functions enabled" when the headers are missing.
+      - name: Install build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev
+          if [ "${{ matrix.system_netsnmp }}" = "present" ]; then
+            sudo apt-get install -y libsnmp-dev snmp bash curl
+          fi
+
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+          install-modules-with: cpanm
+
+      - name: Install dependencies
+        run: |
+          cpanm --notest --installdeps .
+          cpanm --notest CPAN-Uploader
+
+      - name: Build and test
+        run: |
+          perl Makefile.PL
+          make dist
+
+      - name: Upload to CPAN
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          PAUSE_USERNAME: ${{ secrets.PAUSE_USERNAME }}
+          PAUSE_PASSWORD: ${{ secrets.PAUSE_PASSWORD }}
+        run: |
+          bash -c 'RELEASENAME=(Alien-SNMP-*.tar.gz) && ! curl -LI --fail https://cpan.metacpan.org/authors/id/O/OL/OLIVER/${RELEASENAME}'
+          cpan-upload -u '${{ env.PAUSE_USERNAME }}' -p '${{ env.PAUSE_PASSWORD }}' Alien-SNMP-*.tar.gz
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3.24
+        if: always() && github.event.inputs.debug_tests == 'true'
+        with:
+          sudo: true

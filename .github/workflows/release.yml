@@ -48,7 +48,7 @@ jobs:
       - name: Install dependencies
         run: |
           cpanm --notest --installdeps .
-          cpanm --notest CPAN-Uploader
+          cpanm --notest CPAN::Uploader
 
       - name: Build and test
         run: |

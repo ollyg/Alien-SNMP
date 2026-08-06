@@ -157,7 +157,7 @@ share {
   # Canonical raw URL serves the tarball directly (no GitHub blob-page redirects).
   # The netdisco mirror is byte-for-byte identical to the official Net-SNMP
   # release on SourceForge.
-  start_url 'https://raw.githubusercontent.com/netdisco/upstream-sources/master/net-snmp/net-snmp-5.9.5.2.tar.gz';
+  start_url 'https://github.com/netdisco/upstream-sources/raw/refs/heads/master/net-snmp/net-snmp-5.9.5.2.tar.gz';
 
   plugin 'Download';   # https fetch requires a TLS-capable fetcher (Net::SSLeay/IO::Socket::SSL or curl/wget)
 

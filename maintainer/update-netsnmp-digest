@@ -24,7 +24,7 @@ use HTTP::Tiny;
 my $SOURCEFORGE_URL_TEMPLATE =
   'https://sourceforge.net/projects/net-snmp/files/net-snmp/%s/net-snmp-%s.tar.gz/download';
 my $NETDISCO_MIRROR_URL_TEMPLATE =
-  'https://raw.githubusercontent.com/netdisco/upstream-sources/master/net-snmp/net-snmp-%s.tar.gz';
+  'https://github.com/netdisco/upstream-sources/raw/refs/heads/master/net-snmp/net-snmp-%s.tar.gz';
 
 my %option = (version => undef, sha1 => undef, 'mirror-check' => 1);
 GetOptions(
